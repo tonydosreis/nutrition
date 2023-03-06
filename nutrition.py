@@ -1,6 +1,9 @@
 import numpy as np
 from scipy import optimize
 
+MIN_QUANT = 0
+MAX_QUANT = 10**4 #10kg
+
 class Food():
 
     ATTR_NAMES = ["cals", "carbs", "proteins", "fats", "quantity"]
@@ -33,6 +36,7 @@ class MealSolver():
     def __init__(self, foods):
         self.foods = foods
         self.n_foods = len(foods)
+        self.quant_bounds = (MIN_QUANT*np.ones(self.n_foods), MAX_QUANT*np.ones(self.n_foods))
         self.n_equations = 0
         self.A = []
         self.B = []
@@ -64,7 +68,7 @@ class MealSolver():
         assert self.n_equations > 0
         A = np.array(self.A)
         B = np.array(self.B).reshape(-1,1)
-        bounds = (0, 1000)
+        bounds = self.quant_bounds
         x0 =np.random.uniform(low = bounds[0], high = bounds[1], size=(self.n_foods))
         def fun(x):
             return (A@x.reshape((-1,1)) - B).flatten()
