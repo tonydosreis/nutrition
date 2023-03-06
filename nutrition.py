@@ -36,7 +36,7 @@ class MealSolver():
     def __init__(self, foods):
         self.foods = foods
         self.n_foods = len(foods)
-        self.quant_bounds = (MIN_QUANT*np.ones(self.n_foods), MAX_QUANT*np.ones(self.n_foods))
+        self.quant_bounds = [MIN_QUANT*np.ones(self.n_foods), MAX_QUANT*np.ones(self.n_foods)]
         self.n_equations = 0
         self.A = []
         self.B = []
@@ -63,6 +63,13 @@ class MealSolver():
         a[i] = 1
         b = quant
         self.add_equation(a,b)
+
+    def add_bounds(self, food, min = MIN_QUANT, max=MAX_QUANT):
+        assert food in self.foods
+        assert min >= MIN_QUANT and max <= MAX_QUANT
+        i = self.foods.index(food)
+        self.quant_bounds[0][i] = min
+        self.quant_bounds[1][i] = max
 
     def solve(self):
         assert self.n_equations > 0
@@ -153,7 +160,7 @@ if __name__ =="__main__":
     solver.add_total_constraint("proteins", protein_per_meal)
     solver.add_total_constraint("cals", cals_per_meal)
     solver.add_total_constraint("fats", fats_per_meal)
-    solver.add_quant_constraint(vegetables, 100)
+    solver.add_bounds(vegetables, min = 80, max = 120)
 
     quant, res = solver.solve()
 
