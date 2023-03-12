@@ -2,7 +2,8 @@ import numpy as np
 from scipy import optimize
 
 MIN_QUANT = 0
-MAX_QUANT = 10**4 #10kg
+MAX_QUANT = 10**4  # 10kg
+
 
 class Food():
 
@@ -15,9 +16,14 @@ class Food():
         self.carbs = carbs/serving_size
         self.proteins = proteins/serving_size
         self.fats = fats/serving_size
-    
+
     def __str__(self):
-        return f"Name: {self.name:>20}, cals: {self.cals:.2f}/g, carbs: {self.carbs:.2f}/g, proteins: {self.proteins:.2f}/g, fats {self.fats:.2f}/g"
+        string = (f"Name: {self.name:>20},"
+                  f" cals: {self.cals:.2f}/g,"
+                  f" carbs: {self.carbs:.2f}/g,"
+                  f" proteins: {self.proteins:.2f}/g,"
+                  f" fats {self.fats:.2f}/g")
+        return string
 
     def get_attr(self, attr_name):
         assert attr_name in Food.ATTR_NAMES
@@ -31,17 +37,19 @@ class Food():
             return self.fats
         else:
             return 1
-        
+
+
 class MealSolver():
     def __init__(self, foods):
         self.foods = foods
         self.n_foods = len(foods)
-        self.quant_bounds = [MIN_QUANT*np.ones(self.n_foods), MAX_QUANT*np.ones(self.n_foods)]
+        self.quant_bounds = [
+            MIN_QUANT*np.ones(self.n_foods), MAX_QUANT*np.ones(self.n_foods)]
         self.n_equations = 0
         self.A = []
         self.B = []
 
-    def add_equation(self, a,b):
+    def add_equation(self, a, b):
         assert len(a) == self.n_foods
         assert type(b) in [float, int]
         self.A.append(a)
@@ -53,7 +61,7 @@ class MealSolver():
         assert quant >= 0
         a = [food.get_attr(property) for food in self.foods]
         b = quant
-        self.add_equation(a,b)
+        self.add_equation(a, b)
 
     def add_quant_constraint(self, food, quant):
         assert food in self.foods
@@ -62,9 +70,9 @@ class MealSolver():
         i = self.foods.index(food)
         a[i] = 1
         b = quant
-        self.add_equation(a,b)
+        self.add_equation(a, b)
 
-    def add_bounds(self, food, min = MIN_QUANT, max=MAX_QUANT):
+    def add_bounds(self, food, min=MIN_QUANT, max=MAX_QUANT):
         assert food in self.foods
         assert min >= MIN_QUANT and max <= MAX_QUANT
         i = self.foods.index(food)
@@ -74,16 +82,19 @@ class MealSolver():
     def solve(self):
         assert self.n_equations > 0
         A = np.array(self.A)
-        B = np.array(self.B).reshape(-1,1)
+        B = np.array(self.B).reshape(-1, 1)
         bounds = self.quant_bounds
-        x0 =np.random.uniform(low = bounds[0], high = bounds[1], size=(self.n_foods))
+        x0 = np.random.uniform(
+            low=bounds[0], high=bounds[1], size=(self.n_foods))
+
         def fun(x):
-            return (A@x.reshape((-1,1)) - B).flatten()
-        out = optimize.least_squares( fun = fun,x0 = x0, bounds = bounds)
+            return (A@x.reshape((-1, 1)) - B).flatten()
+        out = optimize.least_squares(fun=fun, x0=x0, bounds=bounds)
         quant = out.x
         res = out.fun
 
         return quant, res
+
 
 def get_daily_macros(bodyweight, protein_ratio, fat_ratio):
     daily_protein = bodyweight*protein_ratio
@@ -91,9 +102,11 @@ def get_daily_macros(bodyweight, protein_ratio, fat_ratio):
 
     return daily_protein, daily_fats
 
-def get_macros_per_meal(bodyweight, protein_ratio, fat_ratio, daily_cals, n_meals):
-    """Calculates the macros for each meal in a day.
-    
+
+def get_macros_per_meal(bodyweight, protein_ratio,
+                        fat_ratio, daily_cals, n_meals):
+    """Calculate the macros for each meal in a day.
+
     Recommended values are for a gaining phase.
 
     Args:
@@ -108,8 +121,8 @@ def get_macros_per_meal(bodyweight, protein_ratio, fat_ratio, daily_cals, n_meal
         protein_per_meal
         fats_per_meal
     """
-
-    daily_protein, daily_fats = get_daily_macros(bodyweight, protein_ratio, fat_ratio)
+    daily_protein, daily_fats = get_daily_macros(
+        bodyweight, protein_ratio, fat_ratio)
 
     cals_per_meal = daily_cals/n_meals
     protein_per_meal = daily_protein/n_meals
@@ -117,9 +130,14 @@ def get_macros_per_meal(bodyweight, protein_ratio, fat_ratio, daily_cals, n_meal
 
     return cals_per_meal, protein_per_meal, fats_per_meal
 
+
 def display_goal(cals_per_meal, protein_per_meal, fats_per_meal):
     print("Goal:")
-    print(f"   cals: {cals_per_meal:.0f}, proteins: {protein_per_meal:.0f}g, fats {fats_per_meal:.0f}g" )
+    string = (f"  cals: {cals_per_meal:.0f}, "
+              f"proteins: {protein_per_meal:.0f}g, "
+              f"fats {fats_per_meal:.0f}g")
+    print(string)
+
 
 def display_meal(foods, quantity):
     calories = 0
@@ -136,13 +154,21 @@ def display_meal(foods, quantity):
         fats += food.fats*quant
 
     print("Macros:")
-    print(f"   cals: {calories:.0f}, carbs: {carbs:.0f}g, proteins: {proteins:.0f}g, fats {fats:.0f}g" )
+    print(f"cals: {calories:.0f}, "
+          f"carbs: {carbs:.0f}g, "
+          f"proteins: {proteins:.0f}g, "
+          f"fats {fats:.0f}g")
 
-if __name__ =="__main__":
-    rice = Food("Rice", "grams", serving_size=47, cals =170, carbs=37, proteins=3, fats=0)
-    vegetables = Food("Vegetables", "grams", serving_size=100, cals=28, carbs=3, proteins=3, fats=0.5)
-    chicken = Food("Chicken breast", "grams", serving_size=112, cals=100, carbs=0, proteins=24, fats=0.5 )
-    oil = Food("Canola oil", "grams", serving_size=14, cals=120, carbs =0, proteins=0,fats=14)
+
+if __name__ == "__main__":
+    rice = Food("Rice", "grams", serving_size=47,
+                cals=170, carbs=37, proteins=3, fats=0)
+    vegetables = Food("Vegetables", "grams", serving_size=100,
+                      cals=28, carbs=3, proteins=3, fats=0.5)
+    chicken = Food("Chicken breast", "grams", serving_size=112,
+                   cals=100, carbs=0, proteins=24, fats=0.5)
+    oil = Food("Canola oil", "grams", serving_size=14,
+               cals=120, carbs=0, proteins=0, fats=14)
 
     foods = [rice, vegetables, chicken, oil]
 
@@ -153,14 +179,15 @@ if __name__ =="__main__":
     daily_cals = 2200
     n_meals = 4
 
-    cals_per_meal, protein_per_meal, fats_per_meal = get_macros_per_meal(bodyweight, protein_ratio, fat_ratio, daily_cals, n_meals)
+    cals_per_meal, protein_per_meal, fats_per_meal = get_macros_per_meal(
+        bodyweight, protein_ratio, fat_ratio, daily_cals, n_meals)
     display_goal(cals_per_meal, protein_per_meal, fats_per_meal)
 
     solver = MealSolver(foods)
     solver.add_total_constraint("proteins", protein_per_meal)
     solver.add_total_constraint("cals", cals_per_meal)
     solver.add_total_constraint("fats", fats_per_meal)
-    solver.add_bounds(vegetables, min = 80, max = 120)
+    solver.add_bounds(vegetables, min=80, max=120)
 
     quant, res = solver.solve()
 
