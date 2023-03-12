@@ -82,6 +82,11 @@ class MealSolver():
     def solve(self):
         assert self.n_equations > 0
         A = np.array(self.A)
+        deg_free = self.n_foods - np.linalg.matrix_rank(A)
+        if(deg_free):
+            print(f"!!! WARNING !!! Infinitely many solutions. Add {deg_free} "
+                  "linearly independent equations to have a unique solution.")
+
         B = np.array(self.B).reshape(-1, 1)
         bounds = self.quant_bounds
         x0 = np.random.uniform(
