@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import optimize
+import itertools
 
 MIN_QUANT = 0
 MAX_QUANT = 10**4  # 10kg
@@ -9,20 +10,30 @@ class Food():
 
     ATTR_NAMES = ["cals", "carbs", "proteins", "fats", "quantity"]
 
-    def __init__(self, name, unit, serving_size, cals, carbs, proteins, fats):
+    def __init__(self,
+                 name,
+                 unit,
+                 serving_size,
+                 cals,
+                 carbs,
+                 proteins,
+                 fats,
+                 discrete=False):
+
         self.name = name
         self.unit = unit
         self.cals = cals/serving_size
         self.carbs = carbs/serving_size
         self.proteins = proteins/serving_size
         self.fats = fats/serving_size
+        self.discrete = discrete
 
     def __str__(self):
         string = (f"Name: {self.name:>20}"
-                  f" cals: {self.cals:.2f}/{self.unit:<5}"
-                  f" carbs: {self.carbs:.2f}/{self.unit:<5}"
-                  f" proteins: {self.proteins:.2f}/{self.unit:<5}"
-                  f" fats {self.fats:.2f}/{self.unit:<5}")
+                  f" cals: {self.cals:>5.1f}/{self.unit:<5}"
+                  f" carbs: {self.carbs:>5.1f}/{self.unit:<5}"
+                  f" proteins: {self.proteins:>5.1f}/{self.unit:<5}"
+                  f" fats {self.fats:>5.1f}/{self.unit:<5}")
         return string
 
     def get_attr(self, attr_name):
@@ -92,13 +103,28 @@ class MealSolver():
         x0 = np.random.uniform(
             low=bounds[0], high=bounds[1], size=(self.n_foods))
 
-        def fun(x):
+        def residuals(x):
             return (A@x.reshape((-1, 1)) - B).flatten()
-        out = optimize.least_squares(fun=fun, x0=x0, bounds=bounds)
-        quant = out.x
-        res = out.fun
 
-        return quant, res
+        def loss(x):
+            return np.mean((residuals(x)**2))
+
+        out = optimize.least_squares(fun=residuals, x0=x0, bounds=bounds)
+        quant = out.x
+
+        # Dealing with foods that are discrete
+        mask = [food.discrete for food in self.foods]
+        choices = [[np.floor(val), np.ceil(val)] for val in quant[mask]]
+        best_loss = np.inf
+        best_quant = quant.copy()
+
+        for choice in itertools.product(*choices):
+            quant[mask] = choice
+            curr_loss = loss(quant)
+            if curr_loss < best_loss:
+                best_loss = curr_loss
+                best_quant = quant.copy()
+        return best_quant, best_loss
 
 
 def get_daily_macros(bodyweight, protein_ratio, fat_ratio):
@@ -152,28 +178,51 @@ def display_meal(foods, quantity):
 
     print("Meal:")
     for food, quant in zip(foods, quantity):
-        print(f"   -{quant:.0f}{food.unit} of {food.name} ")
+        print(f"   -{quant:.1f}{food.unit} of {food.name} ")
         calories += food.cals*quant
         carbs += food.carbs*quant
         proteins += food.proteins*quant
         fats += food.fats*quant
 
     print("Macros:")
-    print(f"cals: {calories:.0f}, "
-          f"carbs: {carbs:.0f}g, "
-          f"proteins: {proteins:.0f}g, "
-          f"fats {fats:.0f}g")
+    print(f"cals: {calories:.1f}, "
+          f"carbs: {carbs:.1f}g, "
+          f"proteins: {proteins:.1f}g, "
+          f"fats {fats:.1f}g")
 
 
 if __name__ == "__main__":
-    rice = Food("Rice", "g", serving_size=47,
-                cals=170, carbs=37, proteins=3, fats=0)
-    vegetables = Food("Vegetables", "g", serving_size=100,
-                      cals=28, carbs=3, proteins=3, fats=0.5)
-    chicken = Food("Chicken breast", "g", serving_size=112,
-                   cals=100, carbs=0, proteins=24, fats=0.5)
-    oil = Food("Canola oil", "g", serving_size=14,
-               cals=120, carbs=0, proteins=0, fats=14)
+    rice = Food("Rice",
+                "g",
+                serving_size=47,
+                cals=170,
+                carbs=37,
+                proteins=3,
+                fats=0,
+                discrete=True)
+    vegetables = Food("Vegetables",
+                      "g",
+                      serving_size=100,
+                      cals=28,
+                      carbs=3,
+                      proteins=3,
+                      fats=0.5,
+                      discrete=True)
+    chicken = Food("Chicken breast",
+                   "g",
+                   serving_size=112,
+                   cals=100,
+                   carbs=0,
+                   proteins=24,
+                   fats=0.5,
+                   discrete=True)
+    oil = Food("Canola oil",
+               "g",
+               serving_size=14,
+               cals=120,
+               carbs=0,
+               proteins=0,
+               fats=14)
 
     foods = [rice, vegetables, chicken, oil]
 
@@ -192,6 +241,7 @@ if __name__ == "__main__":
     solver.add_total_constraint("proteins", protein_per_meal)
     solver.add_total_constraint("cals", cals_per_meal)
     solver.add_total_constraint("fats", fats_per_meal)
+    solver.add_quant_constraint(vegetables, 100)
     solver.add_bounds(vegetables, min=80, max=120)
 
     quant, res = solver.solve()
