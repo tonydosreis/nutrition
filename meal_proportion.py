@@ -18,11 +18,11 @@ class Food():
         self.fats = fats/serving_size
 
     def __str__(self):
-        string = (f"Name: {self.name:>20},"
-                  f" cals: {self.cals:.2f}/g,"
-                  f" carbs: {self.carbs:.2f}/g,"
-                  f" proteins: {self.proteins:.2f}/g,"
-                  f" fats {self.fats:.2f}/g")
+        string = (f"Name: {self.name:>20}"
+                  f" cals: {self.cals:.2f}/{self.unit:<5}"
+                  f" carbs: {self.carbs:.2f}/{self.unit:<5}"
+                  f" proteins: {self.proteins:.2f}/{self.unit:<5}"
+                  f" fats {self.fats:.2f}/{self.unit:<5}")
         return string
 
     def get_attr(self, attr_name):
@@ -152,7 +152,7 @@ def display_meal(foods, quantity):
 
     print("Meal:")
     for food, quant in zip(foods, quantity):
-        print(f"   -{quant:.0f}g of {food.name} ")
+        print(f"   -{quant:.0f}{food.unit} of {food.name} ")
         calories += food.cals*quant
         carbs += food.carbs*quant
         proteins += food.proteins*quant
@@ -166,13 +166,13 @@ def display_meal(foods, quantity):
 
 
 if __name__ == "__main__":
-    rice = Food("Rice", "grams", serving_size=47,
+    rice = Food("Rice", "g", serving_size=47,
                 cals=170, carbs=37, proteins=3, fats=0)
-    vegetables = Food("Vegetables", "grams", serving_size=100,
+    vegetables = Food("Vegetables", "g", serving_size=100,
                       cals=28, carbs=3, proteins=3, fats=0.5)
-    chicken = Food("Chicken breast", "grams", serving_size=112,
+    chicken = Food("Chicken breast", "g", serving_size=112,
                    cals=100, carbs=0, proteins=24, fats=0.5)
-    oil = Food("Canola oil", "grams", serving_size=14,
+    oil = Food("Canola oil", "g", serving_size=14,
                cals=120, carbs=0, proteins=0, fats=14)
 
     foods = [rice, vegetables, chicken, oil]
